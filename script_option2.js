@@ -3,36 +3,47 @@
 // ============================================
 
 window.pwaDoInstall = async function() {
-    console.log('[PWA] Install clicked, prompt:', !!deferredPrompt);
-    if (deferredPrompt) {
-        const btn = document.getElementById('installBtn');
-        if (btn) { btn.textContent = 'Installing…'; btn.disabled = true; }
-        try {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            deferredPrompt = null;
-            if (outcome === 'accepted') {
-                if (btn) { btn.textContent = '\u2713 Installed!'; btn.style.background = '#28a745'; }
-                showNotification('Installed! Open from your home screen.', 'success');
-                setTimeout(() => {
-                    const b = document.getElementById('installBanner');
-                    if (b) b.style.display = 'none';
-                }, 3000);
-            } else {
-                if (btn) { btn.textContent = 'INSTALL'; btn.disabled = false; }
-            }
-        } catch(e) {
-            console.error('[PWA]', e);
-            const btn2 = document.getElementById('installBtn');
-            if (btn2) { btn2.textContent = 'INSTALL'; btn2.disabled = false; }
-        }
+    if (!deferredPrompt) {
+        // Prompt not ready yet — do nothing, wait for beforeinstallprompt
+        console.log('[PWA] Prompt not available yet');
         return;
     }
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isAndroid = /android/i.test(navigator.userAgent);
-    if (isIOS) showNotification('Tap Share (\u2191) then "Add to Home Screen"', 'info');
-    else if (isAndroid) showNotification('Tap browser menu (⋮) \u2192 "Add to Home Screen"', 'info');
-    else showNotification('Click the install icon in your browser address bar', 'info');
+
+    const btn    = document.getElementById('installBtn');
+    const pwaBtn = document.getElementById('pwaInstallBtn');
+
+    // Show installing state immediately on both buttons
+    [btn, pwaBtn].forEach(b => {
+        if (b) { b.textContent = 'Installing…'; b.disabled = true; b.style.background = '#1a7a2e'; }
+    });
+
+    try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+
+        if (outcome === 'accepted') {
+            [btn, pwaBtn].forEach(b => {
+                if (b) { b.textContent = '✓ Installed!'; b.style.background = '#28a745'; b.disabled = false; }
+            });
+            showNotification('✅ SBD 2026 installed! Find it on your home screen.', 'success');
+            setTimeout(() => {
+                const banner = document.getElementById('installBanner');
+                if (banner) banner.style.display = 'none';
+                _pwaBannerHide();
+            }, 3000);
+        } else {
+            // User cancelled — reset buttons
+            [btn, pwaBtn].forEach(b => {
+                if (b) { b.textContent = 'INSTALL'; b.disabled = false; b.style.background = '#28a745'; }
+            });
+        }
+    } catch(e) {
+        console.error('[PWA]', e);
+        [btn, pwaBtn].forEach(b => {
+            if (b) { b.textContent = 'INSTALL'; b.disabled = false; }
+        });
+    }
 };
 window.pwaCloseBanner = function() {
     const b = document.getElementById('pwaInstallBanner');
@@ -71,11 +82,12 @@ function _pwaInjectBanner() {
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    // Turn button green = ready
+    // Turn install button green — ready
     const btn = document.getElementById('installBtn');
     if (btn) {
         btn.style.background = '#28a745';
         btn.textContent = 'INSTALL';
+        btn.style.display = 'inline-flex';
     }
     // Auto-show floating banner
     _pwaInjectBanner();
@@ -86,7 +98,6 @@ window.addEventListener('beforeinstallprompt', e => {
 window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     _pwaSuccess();
-    // Hide the static banner too
     const b = document.getElementById('installBanner');
     if (b) b.style.display = 'none';
     console.log('[PWA] App installed');
@@ -95,7 +106,7 @@ window.addEventListener('appinstalled', () => {
 function setupInstallButton() {
     const btn = document.getElementById('installBtn');
     if (!btn) return;
-    // Already running as installed PWA — hide banner
+    // Already installed — hide banner
     if (window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone === true) {
         const b = document.getElementById('installBanner');
@@ -223,6 +234,10 @@ window.pwaDoInstall = async function() {
     }
 };
 window.pwaCloseBanner = function() { _pwaBannerHide(); };
+function _pwaBannerHide() {
+    const b = document.getElementById('pwaInstallBanner');
+    if (b) b.style.bottom = '-120px';
+}
 
 function _pwaBannerShow() {
     const b = document.getElementById('pwaInstallBanner');
