@@ -1632,6 +1632,22 @@ window.showEntryMethodModal = function() {
     if (modal) modal.style.display = 'flex';
 };
 
+// Ensure Section B always shows content — if no method chosen, show modal
+window.ensureSectionBVisible = function() {
+    const qrBlock     = document.getElementById('qrScanBlock');
+    const manualBlock = document.getElementById('manualEntryBlock');
+    const bothHidden  = (!qrBlock || qrBlock.style.display === 'none') &&
+                        (!manualBlock || manualBlock.style.display === 'none');
+    if (bothHidden) {
+        // Re-use previously chosen method if available
+        if (window._entryMethod) {
+            window.chooseEntryMethod(window._entryMethod);
+        } else {
+            window.showEntryMethodModal();
+        }
+    }
+};
+
 window.selectEntryMethod = function(method) {
     window._selectedEntryMethod = method;
     // Update radio visuals
@@ -1663,6 +1679,7 @@ window.chooseEntryMethod = function(method) {
     // Advance to Section 2 (School Profile)
     window.nextSection && window.nextSection();
 
+    window._entryMethod = method;
     const qrBlock     = document.getElementById('qrScanBlock');
     const manualBlock = document.getElementById('manualEntryBlock');
 
