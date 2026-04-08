@@ -122,7 +122,7 @@ function showBanner()        {}
 function hideBanner()        { window.pwaCloseBanner(); }
 function showInstallSuccess(){ _pwaSuccess(); }
 function syncNavInstallBtn() {}
-function injectInstallBanner(){ _pwaInjectBanner(); }    
+function injectInstallBanner(){ _pwaInjectBanner(); }
 
 const CONFIG = {
     SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbymRy-M5v0fVLWUjw4IXYhd1oIR2ZvnP_Dzr_iGR-Th0cMIpmE2ntGeujWYH7-C6NHIzA/exec',
@@ -223,7 +223,7 @@ window.pwaDoInstall = async function() {
         const { outcome } = await deferredPrompt.userChoice;
         deferredPrompt = null;
         if (outcome === 'accepted') {
-            _pwaSuccess();    
+            _pwaSuccess();
         } else {
             _pwaBannerHide();
             if (btn) { btn.textContent = 'INSTALL'; btn.disabled = false; }
@@ -443,6 +443,7 @@ async function init() {
     loadFromStorage();
     injectSummaryModal();
     setupInstallButton();
+    initAppLock();
     try {
         await loadLocationData();
     } catch (e) {
@@ -687,6 +688,7 @@ function loadLocationData() {
                 const _seenKeys  = new Set();    // full 5-part keys seen so far
                 const _dupRows   = [];           // duplicate rows found
                 window.CSV_DUPLICATES = [];      // expose for ai_agent.js Targets tab
+                window.CSV_SCHOOL_DATA = {};     // key → {enrollment, emis, status}
 
                 results.data.forEach((row, rowIdx) => {
                     const d   = csvCol(row, 'District',    'adm1');
@@ -700,7 +702,6 @@ function loadLocationData() {
                     const fullKey = [d,c,fac,com,sch].map(v=>v.trim().toLowerCase()).join('|');
 
                     if (_seenKeys.has(fullKey)) {
-                        // Duplicate — record it but do NOT add to location data again
                         _dupRows.push({ row: rowIdx + 2, district: d, chiefdom: c, phu: fac, community: com, school: sch, key: fullKey });
                         return;
                     }
@@ -711,6 +712,13 @@ function loadLocationData() {
                     if (!ALL_LOCATION_DATA[d][c][fac]) ALL_LOCATION_DATA[d][c][fac]={};
                     if (!ALL_LOCATION_DATA[d][c][fac][com]) ALL_LOCATION_DATA[d][c][fac][com]=[];
                     ALL_LOCATION_DATA[d][c][fac][com].push(sch);
+
+                    // Store school metadata for auto-fill
+                    window.CSV_SCHOOL_DATA[fullKey] = {
+                        enrollment: csvCol(row, 'School enrollment', 'enrollment', 'school_enrollment') || '',
+                        emis:       csvCol(row, 'EMIS Number',       'emis_number', 'emis')            || '',
+                        status:     csvCol(row, 'School Status',     'school_status', 'status')        || ''
+                    };
                     loaded++;
                 });
 
@@ -924,6 +932,40 @@ function setupSchoolSubmissionCheck() {
 
     schoolSel.addEventListener('change', async function() {
         const key = currentSchoolKey();
+
+        // ── Auto-fill school metadata from CSV ─────────────────
+        const meta = window.CSV_SCHOOL_DATA && window.CSV_SCHOOL_DATA[key];
+        if (meta) {
+            const enrEl = document.getElementById('school_enrollment');
+            const emisEl = document.getElementById('emis_number');
+            const stEl  = document.getElementById('school_status');
+            if (enrEl && meta.enrollment) {
+                enrEl.value = meta.enrollment;
+                enrEl.readOnly = true;
+                enrEl.style.background = '#e8f5ee';
+                enrEl.style.borderColor = '#28a745';
+            }
+            if (emisEl && meta.emis) {
+                emisEl.value = meta.emis;
+                emisEl.readOnly = true;
+                emisEl.style.background = '#e8f5ee';
+                emisEl.style.borderColor = '#28a745';
+            }
+            if (stEl && meta.status) {
+                stEl.value = meta.status;
+                stEl.style.background = '#e8f5ee';
+                stEl.style.borderColor = '#28a745';
+                stEl.style.pointerEvents = 'none';
+            }
+        } else {
+            // School not in CSV (new school) — clear and allow manual entry
+            const enrEl = document.getElementById('school_enrollment');
+            const emisEl = document.getElementById('emis_number');
+            const stEl  = document.getElementById('school_status');
+            if (enrEl) { enrEl.value=''; enrEl.readOnly=false; enrEl.style.background=''; enrEl.style.borderColor=''; }
+            if (emisEl) { emisEl.value=''; emisEl.readOnly=false; emisEl.style.background=''; emisEl.style.borderColor=''; }
+            if (stEl) { stEl.value='New'; stEl.style.background=''; stEl.style.borderColor=''; stEl.style.pointerEvents=''; }
+        }
 
         // Reset state when school changes
         _dupCheck.key       = key;
@@ -1189,7 +1231,7 @@ window.openSummaryModal = function() {
     });
 
     if (!schoolRows) {
-        schoolRows = `<tr><td colspan="9" style="padding:32px;text-align:center;color:#aaa;font-style:italic;">No schools loaded — ensure cascading_data1.csv is present.</td></tr>`;
+        schoolRows = `<tr><td colspan="9" style="padding:32px;text-align:center;color:#aaa;font-style:italic;">No schools loaded — ensure cascading_data.csv is present.</td></tr>`;
     }
 
     body.innerHTML = `
@@ -1453,6 +1495,33 @@ function moveToNextSection() {
 }
 
 function validateCurrentSection() {
+    // Extra validation for section 2 head teacher phone
+    if (state.currentSection === 2) {
+        const phoneEl = document.getElementById('head_teacher_phone');
+        if (phoneEl) {
+            const phone = phoneEl.value.trim();
+            const errorEl = document.getElementById('error_head_teacher_phone');
+            if (!phone || !/^[0-9]{9}$/.test(phone)) {
+                if (errorEl) errorEl.textContent = phone ? 'Enter exactly 9 digits' : 'Head teacher phone is required';
+                if (phoneEl) phoneEl.style.borderColor = '#dc3545';
+                return false;
+            }
+            // Local uniqueness check
+            const currentSchool = document.getElementById('school_name')?.value || '';
+            const alreadyUsed = (state.submittedSchools || []).find(s => {
+                const d = s.data || s;
+                return d.head_teacher_phone === phone && (d.school_name || '') !== currentSchool;
+            });
+            if (alreadyUsed) {
+                const usedIn = (alreadyUsed.data || alreadyUsed).school_name || 'another school';
+                if (errorEl) errorEl.textContent = '⚠ Phone already used at: ' + usedIn;
+                if (phoneEl) phoneEl.style.borderColor = '#dc3545';
+                return false;
+            }
+            if (errorEl) errorEl.textContent = '';
+            phoneEl.style.borderColor = '#28a745';
+        }
+    }
     const section = document.querySelector('.form-section[data-section="'+state.currentSection+'"]');
     if (!section) return true;
     if (state.currentSection === 1) return true;
@@ -1912,6 +1981,16 @@ window.finalizeForm = function() {
         document.querySelector('.form-section[data-section="3"]')?.classList.add('active');
         updateProgress(); return;
     }
+    // ── Track new schools ─────────────────────────────────────
+    const _district   = document.getElementById('district')?.value   || '';
+    const _chiefdom   = document.getElementById('chiefdom')?.value   || '';
+    const _facility   = document.getElementById('facility')?.value   || '';
+    const _community  = document.getElementById('community')?.value  || '';
+    const _schoolName = document.getElementById('school_name')?.value|| '';
+    if (_schoolName && isNewSchool(_district, _chiefdom, _facility, _community, _schoolName)) {
+        saveNewSchool(_district, _chiefdom, _facility, _community, _schoolName);
+    }
+
     // Capture signatures from canvas if hidden inputs empty (mobile fix)
     for (const [n, label] of [[1,'Health Staff'],[2,'Teacher']]) {
         const hidden = document.getElementById('team'+n+'_signature');
@@ -1977,6 +2056,35 @@ window.doSubmit = async function() {
         document.querySelector('.form-section[data-section="3"]')?.classList.add('active');
         updateProgress(); return;
     }
+    // ── Head teacher phone unique check online ──────────────────
+    const htPhone = document.getElementById('head_teacher_phone')?.value || '';
+    if (htPhone && state.isOnline) {
+        try {
+            const dupRes = await Promise.race([
+                fetch(CONFIG.SCRIPT_URL + '?action=checkDuplicate&field=head_teacher_phone&value=' + encodeURIComponent(htPhone) + '&school=' + encodeURIComponent(document.getElementById('school_name')?.value || '')),
+                new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 4000))
+            ]);
+            if (dupRes.ok) {
+                const dupData = await dupRes.json();
+                if (dupData.duplicate) {
+                    showNotification('⛔ Duplicate phone number: ' + htPhone + ' already used at ' + (dupData.school || 'another school'), 'error');
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> SUBMIT'; }
+                    return;
+                }
+            }
+        } catch(e) { /* fail open */ }
+    }
+
+    // ── Track new schools ─────────────────────────────────────
+    const _district   = document.getElementById('district')?.value   || '';
+    const _chiefdom   = document.getElementById('chiefdom')?.value   || '';
+    const _facility   = document.getElementById('facility')?.value   || '';
+    const _community  = document.getElementById('community')?.value  || '';
+    const _schoolName = document.getElementById('school_name')?.value|| '';
+    if (_schoolName && isNewSchool(_district, _chiefdom, _facility, _community, _schoolName)) {
+        saveNewSchool(_district, _chiefdom, _facility, _community, _schoolName);
+    }
+
     // Capture signatures from canvas if hidden inputs empty (mobile fix)
     for (const [n, label] of [[1,'Health Staff'],[2,'Teacher']]) {
         const hidden = document.getElementById('team'+n+'_signature');
@@ -2000,9 +2108,30 @@ window.doSubmit = async function() {
     // Collect form data
     const form = document.getElementById('dataForm');
     if (!form) return;
+
+    // ── Head teacher phone — 9 digit unique check ───────────
+    if (window.validateHeadTeacherPhone && !window.validateHeadTeacherPhone()) {
+        const inp = document.getElementById('head_teacher_phone');
+        if (inp) { inp.scrollIntoView({ behavior:'smooth', block:'center' }); }
+        if (submitBtn) { submitBtn.disabled=false; submitBtn.innerHTML='<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> SUBMIT'; }
+        return;
+    }
+
+    // ── Handle new school name override ─────────────────────
+    const newSchoolName = document.getElementById('newSchoolName')?.value?.trim();
+    if (_isNewSchool && newSchoolName) {
+        // override school_name for submission
+    }
+
     const formData = new FormData(form);
     const data = { timestamp: new Date().toISOString(), submitted_by: state.currentUser || '' };
     for (const [k, v] of formData.entries()) data[k] = v;
+
+    // If new school, mark it
+    if (_isNewSchool && newSchoolName) {
+        data.school_name = newSchoolName;
+        data.is_new_school = 'yes';
+    }
     const pboEl = document.getElementById('itn_type_pbo');
     const ig2El = document.getElementById('itn_type_ig2');
     data.itn_type_pbo = pboEl && pboEl.checked ? 'Yes' : 'No';
@@ -2207,6 +2336,54 @@ function resetForm() {
     setTimeout(()=>initAllSignaturePads(),100);
 }
 
+
+// ════════════════════════════════════════════════════
+// NEW SCHOOL — Not in CSV target list
+// ════════════════════════════════════════════════════
+let _isNewSchool = false;
+
+window.toggleNewSchoolInput = function() {
+    const wrap = document.getElementById('newSchoolInputWrap');
+    const schoolSel = document.getElementById('school_name');
+    if (!wrap) return;
+    _isNewSchool = !_isNewSchool;
+    wrap.style.display = _isNewSchool ? 'block' : 'none';
+
+    const btn = document.getElementById('addNewSchoolBtn');
+    if (btn) btn.textContent = _isNewSchool ? '✕ CANCEL NEW SCHOOL' : '➕ ADD NEW SCHOOL (not in list)';
+
+    if (_isNewSchool) {
+        // Disable the select
+        if (schoolSel) { schoolSel.disabled = true; schoolSel.value = ''; }
+        setTimeout(() => document.getElementById('newSchoolName')?.focus(), 100);
+    } else {
+        if (schoolSel) schoolSel.disabled = false;
+        document.getElementById('newSchoolName').value = '';
+        // Remove new-school hidden field
+        const hf = document.getElementById('is_new_school');
+        if (hf) hf.value = '';
+    }
+};
+
+window.updateNewSchoolName = function(val) {
+    // Keep a hidden field for new school flag
+    let hf = document.getElementById('is_new_school');
+    if (!hf) {
+        hf = document.createElement('input');
+        hf.type = 'hidden'; hf.name = 'is_new_school'; hf.id = 'is_new_school';
+        document.getElementById('dataForm')?.appendChild(hf);
+    }
+    hf.value = val ? 'yes' : '';
+    // Also set school_name value in form via hidden field
+    let snHf = document.getElementById('school_name_new');
+    if (!snHf) {
+        snHf = document.createElement('input');
+        snHf.type='hidden'; snHf.name='school_name'; snHf.id='school_name_new';
+        document.getElementById('dataForm')?.appendChild(snHf);
+    }
+    snHf.value = val;
+};
+
 // ============================================
 // DOWNLOAD DATA
 // ============================================
@@ -2339,3 +2516,71 @@ window.loadDraft=loadDraft; window.deleteDraft=deleteDraft;
 window.validateITNQuantities=validateITNQuantities;
 
 console.log('[ICF Collect] script_option2.js loaded ✓');
+
+// ============================================
+// SCHOOL QR CODE GENERATOR
+// ============================================
+window.generateSchoolQRCodes = function() {
+    // Generate printable QR codes for all schools in CSV
+    const data = window.ALL_LOCATION_DATA;
+    if (!data) { showNotification('Location data not loaded yet', 'error'); return; }
+
+    const win = window.open('', '_blank');
+    let schools = [];
+    for (const district in data)
+        for (const chiefdom in data[district])
+            for (const phu in data[district][chiefdom])
+                for (const community in data[district][chiefdom][phu])
+                    (data[district][chiefdom][phu][community] || []).forEach(school => {
+                        if (school) schools.push({ district, chiefdom, facility:phu, community, school_name:school });
+                    });
+
+    const qrScript = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+
+    win.document.write(`<!DOCTYPE html><html><head>
+    <title>School QR Codes — ICF-SL SBD 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+    <script src="${qrScript}"><\/script>
+    <style>
+      body{font-family:'Oswald',sans-serif;background:#f4f6f9;padding:16px;}
+      h1{color:#004080;text-align:center;margin-bottom:16px;font-size:18px;}
+      .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+      .card{background:#fff;border-radius:10px;border:2px solid #004080;padding:12px;text-align:center;break-inside:avoid;}
+      .card .district{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;}
+      .card .phu{font-size:10px;color:#004080;font-weight:600;margin:2px 0;}
+      .card .school{font-size:11px;font-weight:700;color:#0d1b2a;margin:4px 0 8px;}
+      .card .community{font-size:9px;color:#607080;}
+      .qr-wrap{display:inline-block;padding:6px;background:#fff;border-radius:6px;}
+      @media print{.no-print{display:none;}body{background:#fff;padding:0;}.card{border:1px solid #004080;}}
+    </style></head><body>
+    <h1>ICF-SL · School QR Codes · SBD 2026</h1>
+    <div class="no-print" style="text-align:center;margin-bottom:16px;">
+      <button onclick="window.print()" style="background:#004080;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">🖨 PRINT ALL (${schools.length} Schools)</button>
+    </div>
+    <div class="grid" id="qrGrid"></div>
+    <script>
+    const schools = ${JSON.stringify(schools)};
+    const grid = document.getElementById('qrGrid');
+    schools.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = \`
+        <div class="district">\${s.district} · \${s.chiefdom}</div>
+        <div class="phu">\${s.facility}</div>
+        <div class="school">\${s.school_name}</div>
+        <div class="community">\${s.community}</div>
+        <div class="qr-wrap" id="qr\${i}"></div>
+      \`;
+      grid.appendChild(div);
+      new QRCode(document.getElementById('qr' + i), {
+        text: JSON.stringify(s),
+        width: 140, height: 140,
+        colorDark: '#004080', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    });
+    <\/script>
+    </body></html>`);
+    win.document.close();
+    showNotification('Generating QR codes for ' + schools.length + ' schools…', 'success');
+};
