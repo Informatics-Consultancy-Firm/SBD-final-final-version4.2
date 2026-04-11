@@ -851,37 +851,44 @@
                                 </div>
 
                                 <!-- SECTION 2: SCHOOL PROFILE -->
+                                <!-- SECTION 2: HOW TO IDENTIFY THE SCHOOL -->
                                 <div class="form-section" data-section="2">
-                                    <div class="section-header"><div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div><h2 class="section-title">SECTION B: SCHOOL PROFILE</h2><p class="section-description">School identification and location details</p></div></div>
-
-                                    <!-- ── ENTRY METHOD SELECTOR ── -->
-                                    <div id="entryMethodSelector" style="margin-bottom:18px;">
-                                        <div style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;color:#004080;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">How will you identify the school?</div>
-                                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                                            <button type="button" onclick="window.chooseEntryMethod('qr')"
-                                                style="background:linear-gradient(135deg,#002952,#004080);border:none;border-radius:14px;padding:20px 12px;cursor:pointer;text-align:center;transition:all .2s;box-shadow:0 4px 12px rgba(0,40,80,.2);">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2" width="32" height="32" style="display:block;margin:0 auto 10px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 14v3M14 17h3"/></svg>
-                                                <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:.5px;">SCAN QR CODE</div>
-                                                <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;">Camera auto-fills all fields</div>
-                                            </button>
-                                            <button type="button" onclick="window.chooseEntryMethod('manual')"
-                                                style="background:#fff;border:2px solid #004080;border-radius:14px;padding:20px 12px;cursor:pointer;text-align:center;transition:all .2s;box-shadow:0 4px 12px rgba(0,40,80,.08);">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="#004080" stroke-width="2" width="32" height="32" style="display:block;margin:0 auto 10px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                                <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:#004080;letter-spacing:.5px;">MANUAL ENTRY</div>
-                                                <div style="font-size:10px;color:#607080;margin-top:4px;">Select from dropdown list</div>
-                                            </button>
-                                        </div>
+                                    <div class="section-header">
+                                        <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+                                        <div><h2 class="section-title">SECTION B: SCHOOL IDENTIFICATION</h2><p class="section-description">Choose how you will identify the school</p></div>
                                     </div>
 
-                                    <!-- QR SCAN BLOCK — shown when QR method selected -->
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0 24px;">
+                                        <button type="button" id="method-qr-btn" onclick="window.selectMethod('qr')"
+                                            style="background:#f0f4f8;border:3px solid #dde3ee;border-radius:16px;padding:28px 14px;cursor:pointer;text-align:center;transition:all .25s;">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="#004080" stroke-width="2" width="38" height="38" style="display:block;margin:0 auto 12px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 14v3M14 17h3"/></svg>
+                                            <div style="font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:#004080;letter-spacing:.5px;">SCAN QR CODE</div>
+                                            <div style="font-size:11px;color:#607080;margin-top:6px;line-height:1.4;">Camera scans the school QR and auto-fills all fields instantly</div>
+                                        </button>
+                                        <button type="button" id="method-manual-btn" onclick="window.selectMethod('manual')"
+                                            style="background:#f0f4f8;border:3px solid #dde3ee;border-radius:16px;padding:28px 14px;cursor:pointer;text-align:center;transition:all .25s;">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="#004080" stroke-width="2" width="38" height="38" style="display:block;margin:0 auto 12px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                            <div style="font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:#004080;letter-spacing:.5px;">MANUAL ENTRY</div>
+                                            <div style="font-size:11px;color:#607080;margin-top:6px;line-height:1.4;">Select District → Chiefdom → PHU → Community → School</div>
+                                        </button>
+                                    </div>
+                                    <div id="method-hint" style="text-align:center;font-size:11px;color:#aab0b8;margin-bottom:14px;">Tap a method above to continue</div>
+
+                                    <div class="navigation-buttons">
+                                        <button type="button" class="btn-nav btn-back" onclick="previousSection()"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> BACK</button>
+                                        <button type="button" class="btn-nav btn-next" id="method-next-btn" onclick="window.proceedFromMethodSection()" disabled style="opacity:.45;cursor:not-allowed;">NEXT <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 3: SCHOOL DETAILS (QR or Manual) -->
+                                <div class="form-section" data-section="5">
+                                    <div class="section-header">
+                                        <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+                                        <div><h2 class="section-title">SECTION B: SCHOOL DETAILS</h2><p class="section-description">School location and identification details</p></div>
+                                    </div>
+
+                                    <!-- QR SCAN BLOCK -->
                                     <div id="qrScanBlock" style="display:none;">
-                                        <div style="margin-bottom:10px;">
-                                            <button type="button" onclick="window.showMethodSelector()"
-                                                style="background:none;border:1px solid #dde3ee;border-radius:8px;padding:5px 12px;font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;color:#607080;cursor:pointer;display:flex;align-items:center;gap:5px;">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
-                                                CHANGE METHOD
-                                            </button>
-                                        </div>
                                         <div style="background:linear-gradient(135deg,#002952,#004080);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">
                                             <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px;flex-shrink:0;">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2" width="22" height="22"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 14v3M14 17h3"/></svg>
@@ -895,7 +902,6 @@
                                                 📷 SCAN QR
                                             </button>
                                         </div>
-                                        <!-- QR scanner container -->
                                         <div id="schoolQRScannerWrap" style="display:none;margin-bottom:12px;">
                                             <div style="border:2px solid #004080;border-radius:10px;overflow:hidden;position:relative;">
                                                 <div id="schoolQRReader" style="width:100%;"></div>
@@ -903,7 +909,6 @@
                                                     style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
                                             </div>
                                         </div>
-                                        <!-- QR filled banner — shown after successful scan -->
                                         <div id="qrFilledBanner" style="display:none;background:#e8f5ee;border:2px solid #1a7a3c;border-radius:10px;padding:10px 14px;margin-bottom:12px;align-items:center;gap:8px;">
                                             <span style="font-size:18px;">✅</span>
                                             <div>
@@ -914,15 +919,8 @@
                                         </div>
                                     </div><!-- /qrScanBlock -->
 
-                                    <!-- MANUAL ENTRY BLOCK — cascading dropdowns, shown only for manual method -->
+                                    <!-- MANUAL ENTRY BLOCK -->
                                     <div id="manualEntryBlock" style="display:none;">
-                                    <div style="margin-bottom:10px;">
-                                        <button type="button" onclick="window.showMethodSelector()"
-                                            style="background:none;border:1px solid #dde3ee;border-radius:8px;padding:5px 12px;font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;color:#607080;cursor:pointer;display:flex;align-items:center;gap:5px;">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
-                                            CHANGE METHOD
-                                        </button>
-                                    </div>
                                     <div class="form-group"><label class="form-label">DISTRICT <span class="required">*</span></label><select class="form-select" name="district" id="district" required><option value="">Select District...</option></select><div class="cascade-count" id="count_district"></div><div class="field-error" id="error_district">Please select a district</div></div>
                                     <div class="form-group"><label class="form-label">CHIEFDOM <span class="required">*</span></label><select class="form-select" name="chiefdom" id="chiefdom" required disabled><option value="">Select Chiefdom...</option></select><div class="cascade-count" id="count_chiefdom"></div><div class="field-error" id="error_chiefdom">Please select a chiefdom</div></div>
                                     <div class="form-group" id="section_loc_group" style="display:none;"><label class="form-label">SECTION</label><select class="form-select" name="section_loc" id="section_loc" disabled><option value="">Select Section...</option></select><div class="cascade-count" id="count_section_loc"></div><div class="field-error" id="error_section_loc">Please select a section</div></div>
@@ -933,50 +931,49 @@
                                         <select class="form-select" name="school_name" id="school_name" required disabled><option value="">Select School...</option></select>
                                         <div class="cascade-count" id="count_school_name"></div>
                                         <div class="field-error" id="error_school_name">Please select a school</div>
-                                        <!-- Add new school not in list -->
                                         <div style="margin-top:8px;">
-                                            <button type="button" id="addNewSchoolBtn"
-                                                onclick="window.toggleNewSchoolInput()"
+                                            <button type="button" id="addNewSchoolBtn" onclick="window.toggleNewSchoolInput()"
                                                 style="background:none;border:1px dashed #004080;color:#004080;border-radius:7px;padding:5px 12px;font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;cursor:pointer;letter-spacing:.4px;display:none;">
                                                 ➕ ADD NEW SCHOOL (not in list)
                                             </button>
                                         </div>
                                         <div id="newSchoolInputWrap" style="display:none;margin-top:8px;">
                                             <div style="background:#fff8e1;border:2px solid #ffc107;border-radius:9px;padding:12px;">
-                                                <div style="font-size:10px;font-weight:700;color:#8a6500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
-                                                    ⭐ NEW SCHOOL — Not in target list
-                                                </div>
-                                                <input type="text" id="newSchoolName"
-                                                    class="form-input"
-                                                    placeholder="Enter exact school name"
-                                                    style="border-color:#ffc107;"
-                                                    oninput="window.updateNewSchoolName(this.value)">
-                                                <div style="font-size:10px;color:#888;margin-top:5px;">
-                                                    This school will appear in targets with a ⭐ new-school marker. The target count will not change.
-                                                </div>
+                                                <div style="font-size:10px;font-weight:700;color:#8a6500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">⭐ NEW SCHOOL — Not in target list</div>
+                                                <input type="text" id="newSchoolName" class="form-input" placeholder="Enter exact school name" style="border-color:#ffc107;" oninput="window.updateNewSchoolName(this.value)">
+                                                <div style="font-size:10px;color:#888;margin-top:5px;">This school will appear in targets with a ⭐ new-school marker.</div>
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- Enrollment, EMIS, Status — inside manualEntryBlock, auto-filled from CSV on school select -->
                                     <div class="form-group" id="enrollment-group" style="display:none;"><label class="form-label">SCHOOL ENROLLMENT</label><input type="text" class="form-input" name="school_enrollment" id="school_enrollment" readonly style="background:#f5f8ff;cursor:default;color:#004080;font-weight:600;"><input type="hidden" name="school_enrollment_val" id="school_enrollment_val"></div>
                                     <div class="form-group" id="emis-group" style="display:none;"><label class="form-label">EMIS NUMBER</label><input type="text" class="form-input" name="emis_number" id="emis_number" readonly style="background:#f5f8ff;cursor:default;color:#004080;font-weight:600;"></div>
                                     <div class="form-group" id="status-group" style="display:none;"><label class="form-label">SCHOOL STATUS</label><input type="text" class="form-input" name="school_status" id="school_status" readonly style="background:#f5f8ff;cursor:default;color:#004080;font-weight:600;"></div>
                                     </div><!-- /manualEntryBlock -->
 
-                                    <!-- Head teacher + date — always visible once in Section B -->
+                                    <div id="sectionBNav" class="navigation-buttons" style="display:none;">
+                                        <button type="button" class="btn-nav btn-back" onclick="previousSection()"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> BACK</button>
+                                        <button type="button" class="btn-nav btn-next" onclick="nextSection()">NEXT <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 4: HEADMASTER INFORMATION -->
+                                <div class="form-section" data-section="6">
+                                    <div class="section-header">
+                                        <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                                        <div><h2 class="section-title">SECTION C: HEADMASTER INFORMATION</h2><p class="section-description">Head Teacher details and distribution date</p></div>
+                                    </div>
                                     <div class="form-group"><label class="form-label">HEAD TEACHER NAME <span class="required">*</span></label><input type="text" class="form-input name-field" name="head_teacher" id="head_teacher" required><div class="field-error" id="error_head_teacher">Name must contain only letters</div></div>
                                     <div class="form-group"><label class="form-label">HEAD TEACHER PHONE <span class="required">*</span></label><input type="tel" class="form-input phone-field" name="head_teacher_phone" id="head_teacher_phone" required pattern="[0-9]{9}" maxlength="9"><div class="field-hint">Enter 9-digit phone number</div><div class="field-error" id="error_head_teacher_phone">Please enter a valid 9-digit phone number</div></div>
                                     <div class="form-group"><label class="form-label">DATE OF DISTRIBUTION <span class="required">*</span></label><input type="date" class="form-input" name="distribution_date" id="distribution_date" required><div class="field-error" id="error_distribution_date">This field is required</div></div>
-
-                                    <div id="sectionBNav" class="navigation-buttons">
+                                    <div class="navigation-buttons">
                                         <button type="button" class="btn-nav btn-back" onclick="previousSection()"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> BACK</button>
                                         <button type="button" class="btn-nav btn-next" onclick="nextSection()">NEXT <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
                                     </div>
                                 </div>
 
                                 <!-- SECTION 3: CLASS ENROLLMENT & ITN DISTRIBUTION -->
-                                <div class="form-section" data-section="3">
-                                    <div class="section-header"><div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div><div><h2 class="section-title">SECTION C: ENROLLMENT & ITN DISTRIBUTION</h2><p class="section-description">Enter enrollment and ITN data for each class</p></div></div>
+                                <div class="form-section" data-section="5">
+                                    <div class="section-header"><div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div><div><h2 class="section-title">SECTION D: ENROLLMENT & ITN DISTRIBUTION</h2><p class="section-description">Enter enrollment and ITN data for each class</p></div></div>
 
                                     <div class="itn-received-block">
                                         <div class="itn-received-header"><svg class="block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ITNs RECEIVED IN SCHOOL</div>
@@ -1080,8 +1077,8 @@
                                 </div>
 
                                 <!-- SECTION 4: SUMMARY DASHBOARD -->
-                                <div class="form-section" data-section="4">
-                                    <div class="section-header"><div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div><div><h2 class="section-title">SECTION D: SUMMARY DASHBOARD</h2><p class="section-description">Auto-calculated totals, proportions, and coverage statistics</p></div></div>
+                                <div class="form-section" data-section="6">
+                                    <div class="section-header"><div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div><div><h2 class="section-title">SECTION E: SUMMARY DASHBOARD</h2><p class="section-description">Auto-calculated totals, proportions, and coverage statistics</p></div></div>
                                     <div class="summary-note"><svg class="note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> All values below are calculated automatically from the data you entered.</div>
 
                                     <div class="dashboard-block"><div class="dashboard-header"><svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> TOTAL ENROLLMENT</div>
@@ -1133,8 +1130,8 @@
                                 </div>
 
                                 <!-- SECTION 5: TEAM & SUBMISSION -->
-                                <div class="form-section" data-section="5">
-                                    <div class="section-header"><div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div><div><h2 class="section-title">SECTION E: TEAM MEMBERS & SUBMISSION</h2><p class="section-description">Survey team details, GPS location, and signatures</p></div></div>
+                                <div class="form-section" data-section="7">
+                                    <div class="section-header"><div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div><div><h2 class="section-title">SECTION F: TEAM MEMBERS & SUBMISSION</h2><p class="section-description">Survey team details, GPS location, and signatures</p></div></div>
 
                                     <div class="form-group"><label class="form-label">SURVEY DATE <span class="required">*</span></label><input type="date" class="form-input" name="survey_date" id="survey_date" required><div class="field-error" id="error_survey_date">This field is required</div></div>
 
@@ -1444,21 +1441,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="20" height="20" style="flex-shrink:0"><path d="${mod.icon}"/></svg>
                 <div class="module-title">${mod.label}</div>
                 <div style="display:flex;gap:6px;align-items:center;margin-left:auto;">
-                  <button class="mod-subtab active" data-tab="tool"
-                    onclick="openModuleSubTab('${id}','tool')"
-                    style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:5px 12px;font-family:'Oswald',sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;">
-                    🛠 TOOL
-                  </button>
-                  <button class="mod-subtab" data-tab="video"
-                    onclick="openModuleSubTab('${id}','video')"
-                    style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:5px 12px;font-family:'Oswald',sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;">
-                    🎬 VIDEO
-                  </button>
-                  <button class="mod-subtab" data-tab="ppt"
-                    onclick="openModuleSubTab('${id}','ppt')"
-                    style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:5px 12px;font-family:'Oswald',sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;">
-                    📊 PPT
-                  </button>
                   <button class="module-close" onclick="closeModule('${id}')">
                     <svg viewBox="0 0 24 24" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>CLOSE
                   </button>
@@ -1623,25 +1605,20 @@ window.showEntryMethodModal = function() {
 
 // Ensure Section B always shows content — if no method chosen, show modal
 window.ensureSectionBVisible = function() {
-    const qrBlock     = document.getElementById('qrScanBlock');
-    const manualBlock = document.getElementById('manualEntryBlock');
-    const selector    = document.getElementById('entryMethodSelector');
-    const bothHidden  = (!qrBlock || qrBlock.style.display === 'none') &&
-                        (!manualBlock || manualBlock.style.display === 'none');
-    if (bothHidden) {
+    // Section 3 — show correct block based on method chosen
+    if (state && state.currentSection === 3) {
+        const qrBlock     = document.getElementById('qrScanBlock');
+        const manualBlock = document.getElementById('manualEntryBlock');
+        const nav         = document.getElementById('sectionBNav');
         if (window._entryMethod === 'qr') {
-            window.chooseEntryMethod('qr');
+            if (qrBlock)     qrBlock.style.display    = 'block';
+            if (manualBlock) manualBlock.style.display = 'none';
+            if (nav)         nav.style.display         = 'flex';
         } else if (window._entryMethod === 'manual') {
+            if (qrBlock)     qrBlock.style.display    = 'none';
             if (manualBlock) manualBlock.style.display = 'block';
-            if (selector)    selector.style.display    = 'none';
-        } else {
-            // Show selector — no modal
-            if (selector) selector.style.display = 'block';
+            if (nav)         nav.style.display         = 'flex';
         }
-    }
-    if (window._entryMethod === 'manual' && manualBlock) {
-        manualBlock.style.display = 'block';
-        if (selector) selector.style.display = 'none';
     }
 };
 
@@ -1668,40 +1645,61 @@ window.proceedEntryMethod = function() {
     window.chooseEntryMethod(method);
 };
 
-window.showMethodSelector = function() {
-    // Stop QR scanner if running
-    window.stopSchoolQRScan && window.stopSchoolQRScan();
-    // Hide both blocks, show selector
+// selectMethod — highlight chosen button on section 2
+window.selectMethod = function(method) {
+    window._entryMethod = method;
+    const qrBtn  = document.getElementById('method-qr-btn');
+    const manBtn = document.getElementById('method-manual-btn');
+    const hint   = document.getElementById('method-hint');
+    const nextBtn = document.getElementById('method-next-btn');
+
+    if (qrBtn)  { qrBtn.style.background  = method==='qr'     ? 'linear-gradient(135deg,#002952,#004080)' : '#f0f4f8';
+                  qrBtn.style.borderColor  = method==='qr'     ? '#ffc107' : '#dde3ee'; }
+    if (manBtn) { manBtn.style.background = method==='manual'  ? '#e8f1fb' : '#f0f4f8';
+                  manBtn.style.borderColor = method==='manual' ? '#004080' : '#dde3ee'; }
+    // Flip icon colors
+    if (qrBtn)  qrBtn.querySelectorAll('svg').forEach(function(s){ s.setAttribute('stroke', method==='qr'?'#ffc107':'#004080'); });
+    if (manBtn) manBtn.querySelectorAll('div[style*="Oswald"]').forEach(function(d){ d.style.color=method==='manual'?'#004080':'#004080'; });
+
+    if (hint) hint.textContent = method==='qr' ? 'Scan QR Code selected — tap NEXT to continue' : 'Manual Entry selected — tap NEXT to continue';
+    if (nextBtn) { nextBtn.disabled=false; nextBtn.style.opacity='1'; nextBtn.style.cursor='pointer'; }
+};
+
+// proceedFromMethodSection — moves from section 2 to 3 and shows right block
+window.proceedFromMethodSection = function() {
+    const method = window._entryMethod;
+    if (!method) { showNotification('Please choose a method first.', 'error'); return; }
+    nextSection();
     const qrBlock     = document.getElementById('qrScanBlock');
     const manualBlock = document.getElementById('manualEntryBlock');
-    const selector    = document.getElementById('entryMethodSelector');
     const nav         = document.getElementById('sectionBNav');
-    if (qrBlock)     qrBlock.style.display     = 'none';
-    if (manualBlock) manualBlock.style.display  = 'none';
-    if (selector)    selector.style.display     = 'block';
-    if (nav)         nav.style.display          = 'none';
-    window._entryMethod = null;
+    if (method === 'qr') {
+        if (qrBlock)     qrBlock.style.display    = 'block';
+        if (manualBlock) manualBlock.style.display = 'none';
+        if (nav)         nav.style.display         = 'flex';
+        setTimeout(function(){ window.startSchoolQRScan && window.startSchoolQRScan(); }, 400);
+    } else {
+        if (qrBlock)     qrBlock.style.display    = 'none';
+        if (manualBlock) manualBlock.style.display = 'block';
+        if (nav)         nav.style.display         = 'flex';
+    }
 };
 
 window.chooseEntryMethod = function(method) {
-    // Hide selector, show chosen block
-    const selector    = document.getElementById('entryMethodSelector');
+    window._entryMethod = method;
     const qrBlock     = document.getElementById('qrScanBlock');
     const manualBlock = document.getElementById('manualEntryBlock');
-    if (selector) selector.style.display = 'none';
-
-    window._entryMethod = method;
-
+    const nav         = document.getElementById('sectionBNav');
     if (method === 'qr') {
         if (qrBlock)     qrBlock.style.display     = 'block';
         if (manualBlock) manualBlock.style.display  = 'none';
-        setTimeout(() => {
-            window.startSchoolQRScan && window.startSchoolQRScan();
-        }, 400);
+        if (nav)         nav.style.display          = 'flex';
+        setTimeout(function(){ window.startSchoolQRScan && window.startSchoolQRScan(); }, 400);
         showNotification('Point camera at the school QR code', 'info');
     } else {
         if (qrBlock)     qrBlock.style.display     = 'none';
         if (manualBlock) manualBlock.style.display  = 'block';
+        if (nav)         nav.style.display          = 'flex';
         showNotification('Select District, Chiefdom, PHU and School from the dropdowns', 'info');
     }
 };
