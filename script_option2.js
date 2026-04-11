@@ -137,7 +137,7 @@ const CONFIG = {
 // ============================================
 const state = {
     currentSection: 1,
-    totalSections:  5,
+    totalSections:  7,
     isOnline:       navigator.onLine,
     pendingSubmissions: [],
     drafts:         [],
@@ -1544,7 +1544,7 @@ function moveToNextSection() {
 
 function validateCurrentSection() {
     // Extra validation for section 2 head teacher phone
-    if (state.currentSection === 2) {
+    if (state.currentSection === 4) {
         const phoneEl = document.getElementById('head_teacher_phone');
         if (phoneEl) {
             const phone = phoneEl.value.trim();
@@ -1575,8 +1575,16 @@ function validateCurrentSection() {
     if (state.currentSection === 1) return true;
 
     if (state.currentSection === 2) {
+        // Method choice section — valid as long as a method is chosen
+        if (!window._entryMethod) {
+            showNotification('Please choose an identification method first.', 'error');
+            return false;
+        }
+        return true;
+    }
+
+    if (state.currentSection === 3) {
         const key = currentSchoolKey();
-        // Use cached result from async check — or re-check local synchronously
         if (key && (_dupCheck.duplicate || isSchoolSubmitted(key))) {
             const src = _dupCheck.source === 'online' ? ' (confirmed on ICF-SL Server)' :
                         _dupCheck.source === 'pending' ? ' (in offline queue)' :
@@ -1711,7 +1719,14 @@ function validateITNQuantities() {
 function setupPhoneValidation() {
     document.querySelectorAll('.phone-field').forEach(input => {
         input.addEventListener('input', function() {
+            // Strip non-digits and limit to 9
             this.value = this.value.replace(/\D/g,'').slice(0,9);
+            // Clear error while typing — only show red after blur
+            this.classList.remove('error');
+            const errEl = document.getElementById('error_'+this.id);
+            if (errEl) errEl.classList.remove('show');
+        });
+        input.addEventListener('blur', function() {
             validatePhoneField(this);
         });
     });
@@ -1961,11 +1976,7 @@ function _applyDraft(draft) {
             const el = document.getElementById(k);
             if (el && el.type !== 'hidden') el.value = v;
         });
-        const pbo = document.getElementById('itn_type_pbo');
-        const ig2 = document.getElementById('itn_type_ig2');
-        if (pbo) pbo.checked = !!draft.itn_type_pbo;
-        if (ig2) ig2.checked = !!draft.itn_type_ig2;
-        toggleITNTypeQuantity();
+        // ITN type is Dual-AI — no checkbox restore needed
 
         const sec = parseInt(draft._currentSection) || 1;
         document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
@@ -2004,7 +2015,7 @@ function updateDraftIndicator() {}
 // ============================================
 window.finalizeForm = function() {
     // Validate all sections
-    for(let s = 2; s <= state.totalSections; s++) {
+    for(let s = 3; s <= state.totalSections; s++) {
         state.currentSection = s;
         if (!validateCurrentSection()) {
             document.querySelectorAll('.form-section').forEach(sec => sec.classList.remove('active'));
@@ -2060,7 +2071,7 @@ window.doSubmit = async function() {
     const submitBtn = document.getElementById('submitBtn');
 
     // Run full validation before submitting
-    for(let s = 2; s <= state.totalSections; s++) {
+    for(let s = 3; s <= state.totalSections; s++) {
         const savedSection = state.currentSection;
         state.currentSection = s;
         const valid = validateCurrentSection();
@@ -2331,7 +2342,7 @@ function showThankYouModal(data, offline) {
 window.startNewEntry = function() {
     document.getElementById('thankYouModal')?.classList.remove('show');
     resetForm();
-    // Reset entry method so modal shows again for next school
+    clearDraft(); // clear auto-saved draft so old phone doesn't restore
     window._entryMethod = null;
     // Scroll back to top of form
     const wrap = document.getElementById('formCardWrap');
