@@ -317,10 +317,9 @@ body{overflow-x:hidden;}
           </div>
           <div class="card-body">
             <div class="fg">
-              <label class="fl">District <span style="color:var(--red)">*</span></label>
-              <select class="fsel" id="ds-district" onchange="cascadeChiefdom()">
-                <option value="">Select District...</option>
-              </select>
+              <label class="fl">District</label>
+              <input class="fi" type="text" id="ds-district" readonly
+                style="background:var(--gray);color:var(--navy);font-weight:700;cursor:not-allowed;">
             </div>
             <div class="fg">
               <label class="fl">Chiefdom <span style="color:var(--red)">*</span></label>
@@ -643,7 +642,7 @@ async function loadCascadeData() {
     complete: r => {
       locationData = {};
       r.data.forEach(row => {
-        const d=(row.adm1||'').trim(), c=(row.adm2||'').trim(), p=(row.hf||'').trim();
+        const d=(row.District||row.district||row.adm1||'').trim(), c=(row.Chiefdom||row.chiefdom||row.adm2||'').trim(), p=(row.Facility||row.facility||row.phu||row.hf||'').trim();
         if (!d||!c||!p) return;
         if (!locationData[d]) locationData[d]={};
         if (!locationData[d][c]) locationData[d][c]=new Set();
@@ -753,11 +752,11 @@ function enterApp() {
   if (currentUser.role === 'DMS Staff') {
     document.getElementById('dmsTabBar').style.display='flex';
     document.getElementById('drvTabBar').style.display='none';
-    populateDistrictSelect();
-    if (currentUser.district && locationData[currentUser.district]) {
-      document.getElementById('ds-district').value = currentUser.district;
-      cascadeChiefdom();
-    }
+    // Set district from QR and auto-cascade chiefdom + PHU
+    var dist = currentUser.district || '';
+    var inputEl = document.getElementById('ds-district');
+    if (inputEl) inputEl.value = dist;
+    if (dist) cascadeChiefdom();
     switchTab('dashboard');
   } else if (currentUser.role === 'Conveyor') {
     document.getElementById('drvTabBar').style.display='flex';
@@ -801,8 +800,9 @@ function cascadeChiefdom() {
 }
 
 function cascadePHU() {
-  const d=document.getElementById('ds-district').value;
-  const c=document.getElementById('ds-chiefdom').value;
+  const raw = document.getElementById('ds-district').value.trim();
+  const d   = Object.keys(locationData).find(function(k){ return k.toLowerCase() === raw.toLowerCase(); }) || raw;
+  const c   = document.getElementById('ds-chiefdom').value;
   const phuSel=document.getElementById('ds-phu');
   phuSel.innerHTML='<option value="">Select PHU...</option>'; phuSel.disabled=true;
   document.getElementById('cnt-phu').textContent='';
@@ -899,7 +899,7 @@ function newDispatch() {
   stopDriverScanner();
   document.getElementById('step-receipt').style.display='none';
   if (currentUser.district && locationData[currentUser.district]) {
-    document.getElementById('ds-district').value=currentUser.district; cascadeChiefdom();
+    var inputEl = document.getElementById('ds-district'); if (inputEl) inputEl.value = currentUser.district || ''; cascadeChiefdom();
   } else { document.getElementById('ds-district').value=''; }
   setStep(1);
 }
