@@ -231,45 +231,45 @@
     }
 
     async function fetchSheetData(){
-        // GAS getData — reads "Submissions" sheet by name (correct always)
-        // CSV fallback — fast but uses gid which may point to wrong sheet
-        const gasPromise = fetch(GAS_URL+'?action=getData')
-            .then(function(r){ return r.ok?r.json():null; })
-            .then(function(d){
-                if(!d) return null;
-                const rows=d.rows||d.data||(Array.isArray(d)?d:null);
-                return rows&&rows.length?rows:null;
-            }).catch(function(){ return null; });
-
-        const csvPromise = new Promise(function(resolve){
-            Papa.parse('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet=Submissions',{
-                download:true, header:true, skipEmptyLines:true,
-                complete:function(r){ resolve(r.data&&r.data.length?r.data:null); },
-                error:function(){ resolve(null); }
-            });
-        });
-
-        // Race — whichever returns data first wins
-        const result = await Promise.race([
-            gasPromise.then(function(r){ return r?{src:'GAS',rows:r}:new Promise(function(){}); }),
-            csvPromise.then(function(r){ return r?{src:'CSV',rows:r}:new Promise(function(){}); }),
-            new Promise(function(res){ setTimeout(function(){ res({src:'timeout',rows:[]}); },20000); })
-        ]).catch(function(){ return {src:'error',rows:[]}; });
-
-        if(result.rows&&result.rows.length){
-            console.log('[Analysis] Loaded',result.rows.length,'rows via',result.src);
-            return result.rows;
-        }
+        try{
+            const res = await Promise.race([
+                fetch(GAS_URL+'?action=getData'),
+                new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),25000))
+            ]);
+            if(res.ok){
+                const d = await res.json();
+                const rows = d.rows||d.data||(Array.isArray(d)?d:null);
+                if(rows&&rows.length>0){
+                    console.log('[Analysis] Loaded',rows.length,'rows from GAS');
+                    // Log first row to verify field values
+                    const r0 = rows[0];
+                    console.log('[Analysis] Sample row:',{
+                        total_pupils: r0.total_pupils,
+                        total_itn:    r0.total_itn,
+                        total_boys:   r0.total_boys,
+                        total_girls:  r0.total_girls,
+                        total_boys_itn: r0.total_boys_itn,
+                        total_girls_itn: r0.total_girls_itn
+                    });
+                    return rows;
+                }
+            }
+        }catch(e){console.warn('[Analysis] GAS fetch failed:',e.message);}
         return [];
     }
 
+
     // Helper: read a numeric value from a row using column label
     // Tries both the field name and the label so it works regardless of what GAS returns
-    function n(r,label,field){
-        const v = r[label]!==undefined ? r[label] : (field ? r[field] : undefined);
+    function n(r,key,fallback){
+        // key = field name (GAS) or label (CSV)
+        // tries key first, then fallback, then label variants
+        let v = r[key];
+        if((v===undefined||v===''||v===null) && fallback) v = r[fallback];
         if(v===undefined||v===null||v==='') return 0;
-        // Strip comma formatting e.g. "1,234" → 1234
-        return parseFloat(String(v).replace(/,/g,''))||0;
+        // Strip comma formatting, handle locale decimals
+        const clean = String(v).replace(/,/g,'').trim();
+        return parseFloat(clean)||0;
     }
     function s(r,label,field){
         const v = r[label]!==undefined ? r[label] : (field ? r[field] : undefined);
@@ -487,24 +487,25 @@
         const cls={b:[0,0,0,0,0],g:[0,0,0,0,0],bi:[0,0,0,0,0],gi:[0,0,0,0,0]};
 
         all.forEach(r=>{
-            const vp =n(r,'Total Pupils Enrolled','total_pupils');
-            const vi =n(r,'Total ITNs Distributed','total_itn');
-            const vb =n(r,'Total Boys Enrolled','total_boys');
-            const vg =n(r,'Total Girls Enrolled','total_girls');
-            const vbi=n(r,'Total Boys Received ITN','total_boys_itn');
-            const vgi=n(r,'Total Girls Received ITN','total_girls_itn');
-            const vr =n(r,'Total ITNs Received','itns_received');
-            const vrem=n(r,'ITNs Remaining','itns_remaining')||n(r,'ITNs Remaining','itns_remaining_val');
+            // GAS returns field-name keyed rows — read directly
+            const vp =n(r,'total_pupils');
+            const vi =n(r,'total_itn');
+            const vb =n(r,'total_boys');
+            const vg =n(r,'total_girls');
+            const vbi=n(r,'total_boys_itn');
+            const vgi=n(r,'total_girls_itn');
+            const vr =n(r,'itns_received');
+            const vrem=n(r,'itns_remaining')||n(r,'itns_remaining_val');
             tp+=vp;ti+=vi;tb+=vb;tg+=vg;tbi+=vbi;tgi+=vgi;tr+=vr;trem+=vrem;
-            const d=s(r,'District','district')||'Unknown';
+            const d=(r['district']||r['District']||'Unknown');
             if(!byDist[d])byDist[d]={n:0,p:0,i:0,b:0,g:0,bi:0,gi:0};
             byDist[d].n++;byDist[d].p+=vp;byDist[d].i+=vi;byDist[d].b+=vb;byDist[d].g+=vg;byDist[d].bi+=vbi;byDist[d].gi+=vgi;
 
             for(let c=1;c<=5;c++){
-                const cb=n(r,'Class '+c+' — Boys Enrolled','c'+c+'_boys');
-                const cg=n(r,'Class '+c+' — Girls Enrolled','c'+c+'_girls');
-                const cbi=n(r,'Class '+c+' — Boys Received ITN','c'+c+'_boys_itn');
-                const cgi=n(r,'Class '+c+' — Girls Received ITN','c'+c+'_girls_itn');
+                const cb=n(r,'c'+c+'_boys');
+                const cg=n(r,'c'+c+'_girls');
+                const cbi=n(r,'c'+c+'_boys_itn');
+                const cgi=n(r,'c'+c+'_girls_itn');
                 cls.b[c-1]+=cb; cls.g[c-1]+=cg;
                 cls.bi[c-1]+=cbi; cls.gi[c-1]+=cgi;
             }
@@ -588,8 +589,8 @@
                 <thead><tr><th>#</th><th>School</th><th>Community</th><th>District</th><th>Pupils</th><th>Boys</th><th>Girls</th><th>ITNs</th><th>Remaining</th><th>Coverage</th><th>Date</th><th>By</th></tr></thead>
                 <tbody>
                   ${all.sort((a,b)=>(a.district||'').localeCompare(b.district||'')).map((r,i)=>{
-                    const vp=n(r,'Total Pupils Enrolled','total_pupils'),vi=n(r,'Total ITNs Distributed','total_itn'),vb=n(r,'Total Boys Enrolled','total_boys'),vg=n(r,'Total Girls Enrolled','total_girls');
-                    const vrem=n(r,'ITNs Remaining','itns_remaining')||n(r,'ITNs Remaining','itns_remaining_val');
+                    const vp=n(r,'total_pupils'),vi=n(r,'total_itn'),vb=n(r,'total_boys'),vg=n(r,'total_girls');
+                    const vrem=n(r,'itns_remaining')||n(r,'itns_remaining_val');
                     const cov=vp>0?Math.round((vi/vp)*100):0;
                     const col=covColor(cov);
                     return`<tr>
