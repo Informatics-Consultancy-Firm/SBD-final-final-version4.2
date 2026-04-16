@@ -1188,3 +1188,162 @@
 
     console.log('[ICF AI Agent] Loaded ✓');
 })();
+    // ════════════════════════════════════════════════════════
+    //  DMS/PHU TAB — PHU delivery tracking from CSV + GAS
+    // ════════════════════════════════════════════════════════
+    async function renderDmsPhuTab() {
+        const body = document.getElementById('dmsphuBody');
+        if (!body) return;
+        body.innerHTML = `<div style="text-align:center;padding:40px;">
+            <div style="border:4px solid #e0e7ef;border-top:4px solid #004080;border-radius:50%;width:36px;height:36px;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+            <div style="font-family:Oswald,sans-serif;font-size:13px;color:#607080;letter-spacing:.5px;">Loading PHU delivery data…</div>
+        </div>`;
+
+        try {
+            // 1. Load dms_cascading.csv → build district > chiefdom > [facilities]
+            const csvRes  = await fetch('./dms_cascading.csv').then(r=>r.text()).catch(()=>'');
+            const csvTree = {}; // { district: { chiefdom: [facility,...] } }
+            if (csvRes) {
+                const rows = csvRes.trim().split('\n');
+                const hdr  = rows[0].split(',').map(h=>h.trim().toLowerCase());
+                const iD   = hdr.indexOf('district'), iC=hdr.indexOf('chiefdom'), iF=hdr.indexOf('facility');
+                rows.slice(1).forEach(row => {
+                    const cols = row.split(',');
+                    const d=(cols[iD]||'').trim(), c=(cols[iC]||'').trim(), f=(cols[iF]||'').trim();
+                    if (!d||!c||!f) return;
+                    if (!csvTree[d]) csvTree[d]={};
+                    if (!csvTree[d][c]) csvTree[d][c]=[];
+                    if (!csvTree[d][c].includes(f)) csvTree[d][c].push(f);
+                });
+            }
+
+            // Fallback to ALL_LOCATION_DATA if CSV empty
+            if (!Object.keys(csvTree).length) {
+                const loc = window.ALL_LOCATION_DATA || {};
+                for (const dist in loc) {
+                    for (const ch in loc[dist]) {
+                        for (const fac in loc[dist][ch]) {
+                            if (!csvTree[dist]) csvTree[dist]={};
+                            if (!csvTree[dist][ch]) csvTree[dist][ch]=[];
+                            if (!csvTree[dist][ch].includes(fac)) csvTree[dist][ch].push(fac);
+                        }
+                    }
+                }
+            }
+
+            if (!Object.keys(csvTree).length) {
+                body.innerHTML='<div style="padding:24px;font-family:Oswald,sans-serif;color:#607080;font-size:13px;text-align:center;">No location data — ensure dms_cascading.csv is in the repo</div>';
+                return;
+            }
+
+            // 2. Fetch ITN Movement and PHU Receipts from GAS
+            const gasUrl = (typeof window !== 'undefined' && window.WEBHOOK_URL) || 
+                           document.querySelector('[data-gas-url]')?.dataset.gasUrl ||
+                           'https://script.google.com/macros/s/AKfycbymRy-M5v0fVLWUjw4IXYhd1oIR2ZvnP_Dzr_iGR-Th0cMIpmE2ntGeujWYH7-C6NHIzA/exec';
+
+            const [dispRaw, recRaw] = await Promise.allSettled([
+                fetch(gasUrl + '?action=getAllDispatches').then(r=>r.json()).catch(()=>[]),
+                fetch(gasUrl + '?action=getAllReceipts').then(r=>r.json()).catch(()=>[])
+            ]);
+
+            const dispatched = dispRaw.status==='fulfilled' && Array.isArray(dispRaw.value) ? dispRaw.value : [];
+            const received   = recRaw.status==='fulfilled'  && Array.isArray(recRaw.value)  ? recRaw.value  : [];
+
+            // Build PHU sets (lowercase for matching)
+            const lc = s => String(s||'').trim().toLowerCase();
+            const dispSet = new Set(dispatched.map(d => lc(d.phu || d['health_facility_phu'] || d['health facility (phu)'] || '')));
+            const recSet  = new Set(received.map(r  => lc(r.phu || '')));
+
+            // 3. Totals
+            let totTotal=0, totReceived=0, totPending=0, totNot=0;
+            Object.values(csvTree).forEach(chiefdoms => {
+                Object.values(chiefdoms).forEach(phus => {
+                    phus.forEach(phu => {
+                        totTotal++;
+                        const pk=lc(phu);
+                        if (dispSet.has(pk) && recSet.has(pk)) totReceived++;
+                        else if (dispSet.has(pk)) totPending++;
+                        else totNot++;
+                    });
+                });
+            });
+
+            const pct = totTotal ? Math.round(totReceived/totTotal*100) : 0;
+
+            // 4. Render summary
+            let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+                ${dmsCard('Total PHUs', totTotal, '#004080')}
+                ${dmsCard('Received ✅', totReceived, '#28a745')}
+                ${dmsCard('Pending ⏳', totPending, '#f59e0b')}
+                ${dmsCard('Not Started 🔴', totNot, '#dc3545')}
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="font-family:Oswald,sans-serif;font-size:11px;color:#607080;letter-spacing:1px;text-transform:uppercase;">Overall Delivery Progress</span>
+                    <span style="font-family:Oswald,sans-serif;font-size:20px;font-weight:700;color:#004080;">${pct}%</span>
+                </div>
+                <div style="height:10px;background:#e8f0f8;border-radius:6px;overflow:hidden;">
+                    <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#004080,#28a745);border-radius:6px;"></div>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:8px;font-size:10px;color:#94a3b8;">
+                    <span style="color:#28a745;font-weight:700;">${totReceived} received</span>
+                    <span style="color:#f59e0b;font-weight:700;">${totPending} pending</span>
+                    <span style="color:#dc3545;font-weight:700;">${totNot} not started</span>
+                </div>
+            </div>`;
+
+            // 5. District > Chiefdom > PHU breakdown
+            Object.keys(csvTree).sort().forEach(district => {
+                html += `<div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:700;color:#004080;letter-spacing:1.5px;padding:8px 4px 6px;border-bottom:2px solid #c8991a;margin-bottom:10px;margin-top:16px;">📍 ${district.toUpperCase()}</div>`;
+
+                Object.keys(csvTree[district]).sort().forEach(chiefdom => {
+                    const phus = csvTree[district][chiefdom];
+                    let cRec=0,cPend=0,cNot=0;
+                    phus.forEach(p=>{ const pk=lc(p); if(dispSet.has(pk)&&recSet.has(pk))cRec++; else if(dispSet.has(pk))cPend++; else cNot++; });
+                    const cPct = phus.length ? Math.round(cRec/phus.length*100) : 0;
+                    const borderColor = cRec===phus.length ? '#28a745' : cPend>0 ? '#f59e0b' : '#e2e8f0';
+                    const uid = 'ch_' + Math.random().toString(36).slice(2,8);
+
+                    html += `<div style="background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:10px;overflow:hidden;">
+                        <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-left:4px solid ${borderColor};"
+                            onclick="var el=document.getElementById('${uid}');el.style.display=el.style.display==='none'?'block':'none';">
+                            <div>
+                                <div style="font-family:Oswald,sans-serif;font-size:14px;color:#0f172a;letter-spacing:.5px;">${chiefdom}</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:2px;">${phus.length} PHUs · <span style="color:#28a745;">${cRec} received</span> · <span style="color:#f59e0b;">${cPend} pending</span> · <span style="color:#dc3545;">${cNot} not started</span></div>
+                            </div>
+                            <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+                                <div style="font-family:Oswald,sans-serif;font-size:18px;font-weight:700;color:#004080;">${cPct}%</div>
+                                <div style="height:4px;width:56px;background:#e8f0f8;border-radius:3px;margin-top:3px;"><div style="height:100%;width:${cPct}%;background:#28a745;border-radius:3px;"></div></div>
+                            </div>
+                        </div>
+                        <div id="${uid}" style="display:none;padding:10px 16px 12px;">
+                            ${phus.map(phu => {
+                                const pk=lc(phu);
+                                const wasD=dispSet.has(pk), wasR=recSet.has(pk);
+                                let icon,label,bg,textColor;
+                                if (wasD&&wasR)    { icon='✅'; label='Received';    bg='#e8f5e9'; textColor='#1e7a34'; }
+                                else if (wasD)     { icon='⏳'; label='Pending';     bg='#fffbeb'; textColor='#92400e'; }
+                                else               { icon='🔴'; label='Not Started'; bg='#fff1f1'; textColor='#b91c1c'; }
+                                return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:${bg};border-radius:8px;margin-bottom:5px;">
+                                    <span style="font-size:12px;font-weight:500;color:#0f172a;">${icon} ${phu}</span>
+                                    <span style="font-size:10px;font-weight:700;color:${textColor};">${label}</span>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>`;
+                });
+            });
+
+            body.innerHTML = html;
+
+        } catch(err) {
+            body.innerHTML = `<div style="padding:24px;font-family:Oswald,sans-serif;color:#dc3545;font-size:13px;">Error: ${err.message}</div>`;
+        }
+    }
+
+    function dmsCard(label, val, color) {
+        return `<div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);border-top:4px solid ${color};">
+            <div style="font-family:Oswald,sans-serif;font-size:28px;font-weight:700;color:${color};">${val}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#94a3b8;text-transform:uppercase;margin-top:4px;">${label}</div>
+        </div>`;
+    }
