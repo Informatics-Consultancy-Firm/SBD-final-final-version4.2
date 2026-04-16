@@ -231,138 +231,35 @@
     }
 
     async function fetchSheetData(){
-        // ── Method 1: GAS ?action=getData (15s timeout) ────────
         try{
             const res=await Promise.race([
                 fetch(GAS_URL+'?action=getData'),
-                new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))
+                new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),20000))
             ]);
             if(res.ok){
                 const d=await res.json();
                 const rows=d.rows||d.data||(Array.isArray(d)?d:null);
-                if(rows&&rows.length>0){console.log('[Analysis] Loaded',rows.length,'rows from GAS');return normalizeRows(rows);}
+                if(rows&&rows.length>0){
+                    console.log('[Analysis] Loaded',rows.length,'rows');
+                    return rows;
+                }
             }
         }catch(e){console.warn('[Analysis] GAS getData:',e.message);}
-
-        // ── Method 2: Direct ICF-SL Server CSV export ───────────
-        try{
-            const csvUrl=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-            const rows=await new Promise((resolve,reject)=>{
-                Papa.parse(csvUrl,{
-                    download:true,header:true,skipEmptyLines:true,
-                    complete:r=>resolve(r.data||[]),
-                    error:reject
-                });
-            });
-            if(rows&&rows.length>0){console.log('[Analysis] Loaded',rows.length,'rows from CSV export');return normalizeRows(rows);}
-        }catch(e){console.warn('[Analysis] CSV export:',e.message);}
-
-        console.warn('[Analysis] Sheet fetch failed — local data only');
+        console.warn('[Analysis] GAS fetch failed');
         return[];
     }
 
-    // Normalize rows — convert any label-format keys to field names
-    function normalizeRows(rows) {
-        const L2F = {
-            'District':'district','Chiefdom':'chiefdom',
-            'Health Facility (PHU)':'facility','Health Facility':'facility',
-            'Community / Village':'community','Community':'community',
-            'School Name':'school_name','School Enrollment':'school_enrollment',
-            'EMIS Number':'emis_number','School Status':'school_status','New School?':'is_new_school',
-            'Head Teacher Name':'head_teacher','Head Teacher Phone':'head_teacher_phone',
-            'Distribution Date':'distribution_date',
-            'Total ITNs Received':'itns_received','ITN Type':'itn_type',
-            'Class 1 Teacher Name':'c1_teacher_name','Class 1 Teacher Phone':'c1_teacher_phone',
-            'Class 1 — Boys Enrolled':'c1_boys','Class 1 — Boys Received ITN':'c1_boys_itn',
-            'Class 1 — Girls Enrolled':'c1_girls','Class 1 — Girls Received ITN':'c1_girls_itn',
-            'Class 1 - Boys Enrolled':'c1_boys','Class 1 - Boys Received ITN':'c1_boys_itn',
-            'Class 1 - Girls Enrolled':'c1_girls','Class 1 - Girls Received ITN':'c1_girls_itn',
-            'Class 2 Teacher Name':'c2_teacher_name','Class 2 Teacher Phone':'c2_teacher_phone',
-            'Class 2 — Boys Enrolled':'c2_boys','Class 2 — Boys Received ITN':'c2_boys_itn',
-            'Class 2 — Girls Enrolled':'c2_girls','Class 2 — Girls Received ITN':'c2_girls_itn',
-            'Class 2 - Boys Enrolled':'c2_boys','Class 2 - Boys Received ITN':'c2_boys_itn',
-            'Class 2 - Girls Enrolled':'c2_girls','Class 2 - Girls Received ITN':'c2_girls_itn',
-            'Class 3 Teacher Name':'c3_teacher_name','Class 3 Teacher Phone':'c3_teacher_phone',
-            'Class 3 — Boys Enrolled':'c3_boys','Class 3 — Boys Received ITN':'c3_boys_itn',
-            'Class 3 — Girls Enrolled':'c3_girls','Class 3 — Girls Received ITN':'c3_girls_itn',
-            'Class 3 - Boys Enrolled':'c3_boys','Class 3 - Boys Received ITN':'c3_boys_itn',
-            'Class 3 - Girls Enrolled':'c3_girls','Class 3 - Girls Received ITN':'c3_girls_itn',
-            'Class 4 Teacher Name':'c4_teacher_name','Class 4 Teacher Phone':'c4_teacher_phone',
-            'Class 4 — Boys Enrolled':'c4_boys','Class 4 — Boys Received ITN':'c4_boys_itn',
-            'Class 4 — Girls Enrolled':'c4_girls','Class 4 — Girls Received ITN':'c4_girls_itn',
-            'Class 4 - Boys Enrolled':'c4_boys','Class 4 - Boys Received ITN':'c4_boys_itn',
-            'Class 4 - Girls Enrolled':'c4_girls','Class 4 - Girls Received ITN':'c4_girls_itn',
-            'Class 5 Teacher Name':'c5_teacher_name','Class 5 Teacher Phone':'c5_teacher_phone',
-            'Class 5 — Boys Enrolled':'c5_boys','Class 5 — Boys Received ITN':'c5_boys_itn',
-            'Class 5 — Girls Enrolled':'c5_girls','Class 5 — Girls Received ITN':'c5_girls_itn',
-            'Class 5 - Boys Enrolled':'c5_boys','Class 5 - Boys Received ITN':'c5_boys_itn',
-            'Class 5 - Girls Enrolled':'c5_girls','Class 5 - Girls Received ITN':'c5_girls_itn',
-            'Total Boys Enrolled':'total_boys','Total Girls Enrolled':'total_girls',
-            'Total Pupils Enrolled':'total_pupils',
-            'Total Boys Received ITN':'total_boys_itn','Total Girls Received ITN':'total_girls_itn',
-            'Total ITNs Distributed':'total_itn','ITNs Remaining':'itns_remaining',
-            'Proportion Boys (%)':'prop_boys','Proportion Girls (%)':'prop_girls',
-            'Boys ITN Coverage (%)':'coverage_boys','Girls ITN Coverage (%)':'coverage_girls',
-            'Overall ITN Coverage (%)':'coverage_total',
-            'Survey Date':'survey_date','GPS Latitude':'gps_lat','GPS Longitude':'gps_lng',
-            'GPS Accuracy (m)':'gps_acc',
-            'Health Staff Name':'team1_name','Health Staff Phone':'team1_phone','Health Staff Signed?':'team1_signature',
-            'Teacher Name':'team2_name','Teacher Phone':'team2_phone','Teacher Signed?':'team2_signature',
-            'Submitted By':'submitted_by','Timestamp':'timestamp'
-        };
-        return rows.map(r => {
-            const out = {};
-            Object.keys(r).forEach(k => {
-                const mapped = L2F[k] || L2F[k.trim()] || k;
-                out[mapped] = r[k];
-            });
-            return out;
-        });
+    // Helper: read a numeric value from a row using column label
+    // Tries both the field name and the label so it works regardless of what GAS returns
+    function n(r,label,field){
+        const v = r[label]!==undefined ? r[label] : (field ? r[field] : undefined);
+        return parseInt(v)||0;
+    }
+    function s(r,label,field){
+        const v = r[label]!==undefined ? r[label] : (field ? r[field] : undefined);
+        return String(v||'').trim();
     }
 
-    async function fetchCount(){
-        try{const r=await fetch(GAS_URL+'?action=count');const d=await r.json();return d.count!==undefined?d.count:'?';}catch{return'?';}
-    }
-
-    // Build targets from the already-loaded CSV cascading data.
-    // Key = district|chiefdom|phu|community|school_name (same school name in different community = different school)
-    function buildTargetsFromCSV() {
-        // Key = district|chiefdom|phu|community|school — all 5 parts
-        const data = window.ALL_LOCATION_DATA || {};
-        const targets = {};
-
-        for (const district in data) {
-            const dk = district.trim().toLowerCase();
-            const dSet = new Set();
-
-            for (const chiefdom in data[district]) {
-                const ck = chiefdom.trim().toLowerCase();
-                const cSet = new Set();
-
-                for (const phu in data[district][chiefdom]) {
-                    const pk = phu.trim().toLowerCase();
-                    const pSet = new Set();
-
-                    for (const community in data[district][chiefdom][phu]) {
-                        const comk = community.trim().toLowerCase();
-                        const schools = data[district][chiefdom][phu][community];
-                        if (!Array.isArray(schools)) continue;
-                        schools.forEach(s => {
-                            if (!s) return;
-                            const fullKey = dk+'|'+ck+'|'+pk+'|'+comk+'|'+s.trim().toLowerCase();
-                            pSet.add(fullKey);
-                            cSet.add(fullKey);
-                            dSet.add(fullKey);
-                        });
-                    }
-                    if (pSet.size > 0) targets[dk+'|'+ck+'|'+pk] = pSet.size;
-                }
-                if (cSet.size > 0) targets[dk+'|'+ck] = cSet.size;
-            }
-            if (dSet.size > 0) targets[dk] = dSet.size;
-        }
-        return targets;
-    }
 
     // ════════════════════════════════════════════════════════
     //  DATA MERGE  (GAS sheet + localStorage)
@@ -629,15 +526,15 @@
                 <thead><tr><th>#</th><th>School</th><th>Community</th><th>District</th><th>Pupils</th><th>Boys</th><th>Girls</th><th>ITNs</th><th>Remaining</th><th>Coverage</th><th>Date</th><th>By</th></tr></thead>
                 <tbody>
                   ${all.sort((a,b)=>(a.district||'').localeCompare(b.district||'')).map((r,i)=>{
-                    const vp=+r.total_pupils||0,vi=+r.total_itn||0,vb=+r.total_boys||0,vg=+r.total_girls||0;
-                    const vrem=+(r.itns_remaining||r.itns_remaining_val)||0;
+                    const vp=n(r,'Total Pupils Enrolled','total_pupils'),vi=n(r,'Total ITNs Distributed','total_itn'),vb=n(r,'Total Boys Enrolled','total_boys'),vg=n(r,'Total Girls Enrolled','total_girls');
+                    const vrem=n(r,'ITNs Remaining','itns_remaining')||n(r,'ITNs Remaining','itns_remaining_val');
                     const cov=vp>0?Math.round((vi/vp)*100):0;
                     const col=covColor(cov);
                     return`<tr>
                       <td style="color:#8090a0;font-size:11px;">${i+1}</td>
-                      <td style="font-weight:600;white-space:nowrap;">${r.school_name||'—'}</td>
-                      <td style="white-space:nowrap;">${r.community||'—'}</td>
-                      <td style="white-space:nowrap;">${r.district||'—'}</td>
+                      <td style="font-weight:600;white-space:nowrap;">${s(r,'School Name','school_name')||'—'}</td>
+                      <td style="white-space:nowrap;">${s(r,'Community / Village','community')||'—'}</td>
+                      <td style="white-space:nowrap;">${s(r,'District','district')||'—'}</td>
                       <td style="text-align:center;">${vp}</td>
                       <td style="text-align:center;color:#004080;">${vb}</td>
                       <td style="text-align:center;color:#e91e8c;">${vg}</td>
@@ -649,8 +546,8 @@
                           ${covBadge(cov)}
                         </div>
                       </td>
-                      <td style="font-size:11px;white-space:nowrap;">${r.distribution_date||'—'}</td>
-                      <td style="font-size:11px;color:#607080;white-space:nowrap;">${r.submitted_by||'—'}</td>
+                      <td style="font-size:11px;white-space:nowrap;">${s(r,'Distribution Date','distribution_date')||'—'}</td>
+                      <td style="font-size:11px;color:#607080;white-space:nowrap;">${s(r,'Submitted By','submitted_by')||'—'}</td>
                     </tr>`;
                   }).join('')}
                 </tbody>
@@ -751,13 +648,14 @@
         return new Set(
             (_sheetRows || [])
                 .filter(r => r.school_name)
-                .map(r =>
-                    (r.district    ||'').trim().toLowerCase()+'|'+
-                    (r.chiefdom    ||'').trim().toLowerCase()+'|'+
-                    (r.facility    ||'').trim().toLowerCase()+'|'+
-                    (r.community   ||'').trim().toLowerCase()+'|'+
-                    (r.school_name ||'').trim().toLowerCase()
-                )
+                .map(r => {
+                    const _d  = (r['District']||r.district||'').trim().toLowerCase();
+                    const _c  = (r['Chiefdom']||r.chiefdom||'').trim().toLowerCase();
+                    const _f  = (r['Health Facility (PHU)']||r.facility||'').trim().toLowerCase();
+                    const _co = (r['Community / Village']||r.community||'').trim().toLowerCase();
+                    const _sc = (r['School Name']||r.school_name||'').trim().toLowerCase();
+                    return _d+'|'+_c+'|'+_f+'|'+_co+'|'+_sc;
+                })
         );
     }
 
@@ -1190,12 +1088,12 @@
         try{
             const all=mergeData(_sheetRows);if(!all.length)return null;
             let tp=0,ti=0,tb=0,tg=0;const byDist={};
-            all.forEach(r=>{tp+=+r.total_pupils||0;ti+=+r.total_itn||0;tb+=+r.total_boys||0;tg+=+r.total_girls||0;const d=r.district||'Unknown';if(!byDist[d])byDist[d]={n:0,p:0,i:0};byDist[d].n++;byDist[d].p+=+r.total_pupils||0;byDist[d].i+=+r.total_itn||0;});
+            all.forEach(r=>{const _p=n(r,'Total Pupils Enrolled','total_pupils'),_i=n(r,'Total ITNs Distributed','total_itn'),_b=n(r,'Total Boys Enrolled','total_boys'),_g=n(r,'Total Girls Enrolled','total_girls');tp+=_p;ti+=_i;tb+=_b;tg+=_g;const d=s(r,'District','district')||'Unknown';if(!byDist[d])byDist[d]={n:0,p:0,i:0};byDist[d].n++;byDist[d].p+=_p;byDist[d].i+=_i;});
             const ov=tp>0?Math.round((ti/tp)*100):0;
             let ctx=`=== ICF-SL ITN DATA ===\nSchools:${all.length}|Pupils:${tp}(${tb}B/${tg}G)|Distributed:${ti}|Coverage:${ov}%\nBY DISTRICT:\n`;
             Object.entries(byDist).forEach(([d,v])=>{ctx+=`  ${d}:${v.n} schools,${v.p} pupils,${v.p>0?Math.round((v.i/v.p)*100):0}% cov\n`;});
             ctx+=`SCHOOLS:\n`;
-            all.slice(0,30).forEach((r,i)=>{const vp=+r.total_pupils||0,vi=+r.total_itn||0,cov=vp>0?Math.round((vi/vp)*100):0;ctx+=`[${i+1}] ${r.school_name||'—'}(${r.community||'—'},${r.district||'—'})P:${vp},ITN:${vi},Cov:${cov}%,by:${r.submitted_by||'—'}\n`;});
+            all.slice(0,30).forEach((r,i)=>{const vp=+r.total_pupils||0,vi=+r.total_itn||0,cov=vp>0?Math.round((vi/vp)*100):0;ctx+=`[${i+1}] ${s(r,'School Name','school_name')||'—'}(${s(r,'Community / Village','community')||'—'},${s(r,'District','district')||'—'})P:${vp},ITN:${vi},Cov:${cov}%,by:${s(r,'Submitted By','submitted_by')||'—'}\n`;});
             return ctx;
         }catch{return null;}
     }
