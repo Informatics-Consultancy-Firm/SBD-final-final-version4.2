@@ -277,6 +277,46 @@
     }
 
 
+
+    async function fetchCount(){
+        try{
+            const r=await fetch(GAS_URL+'?action=count');
+            const d=await r.json();
+            return d.count!==undefined?d.count:'?';
+        }catch{return'?';}
+    }
+
+    function buildTargetsFromCSV() {
+        const data = window.ALL_LOCATION_DATA || {};
+        const targets = {};
+        for (const district in data) {
+            const dk = district.trim().toLowerCase();
+            const dSet = new Set();
+            for (const chiefdom in data[district]) {
+                const ck = chiefdom.trim().toLowerCase();
+                const cSet = new Set();
+                for (const phu in data[district][chiefdom]) {
+                    const pk = phu.trim().toLowerCase();
+                    const pSet = new Set();
+                    for (const community in data[district][chiefdom][phu]) {
+                        const comk = community.trim().toLowerCase();
+                        const schools = data[district][chiefdom][phu][community];
+                        if (!Array.isArray(schools)) continue;
+                        schools.forEach(sc => {
+                            if (!sc) return;
+                            const fullKey = dk+'|'+ck+'|'+pk+'|'+comk+'|'+sc.trim().toLowerCase();
+                            pSet.add(fullKey); cSet.add(fullKey); dSet.add(fullKey);
+                        });
+                    }
+                    if (pSet.size > 0) targets[dk+'|'+ck+'|'+pk] = pSet.size;
+                }
+                if (cSet.size > 0) targets[dk+'|'+ck] = cSet.size;
+            }
+            if (dSet.size > 0) targets[dk] = dSet.size;
+        }
+        return targets;
+    }
+
     // ════════════════════════════════════════════════════════
     //  DATA MERGE  (GAS sheet + localStorage)
     // ════════════════════════════════════════════════════════
