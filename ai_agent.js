@@ -1294,7 +1294,32 @@
 
             // 5. District > Chiefdom > PHU breakdown
             Object.keys(csvTree).sort().forEach(district => {
-                html += `<div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:700;color:#004080;letter-spacing:1.5px;padding:8px 4px 6px;border-bottom:2px solid #c8991a;margin-bottom:10px;margin-top:16px;">📍 ${district.toUpperCase()}</div>`;
+                const duid = 'dist_' + district.replace(/\s+/g,'_').replace(/[^a-z0-9_]/gi,'');
+                // District stats
+                let dRec=0,dPend=0,dNot=0,dTotal=0;
+                Object.values(csvTree[district]).forEach(phus => phus.forEach(p => {
+                    const pk=lc(p); dTotal++;
+                    if(dispSet.has(pk)&&recSet.has(pk))dRec++; else if(dispSet.has(pk))dPend++; else dNot++;
+                }));
+                const dPct = dTotal ? Math.round(dRec/dTotal*100) : 0;
+                const dBorder = dRec===dTotal?'#28a745':dPend>0?'#f59e0b':'#e2e8f0';
+
+                html += `<div style="background:#fff;border-radius:14px;box-shadow:0 3px 14px rgba(0,64,128,.08);margin-bottom:12px;margin-top:16px;overflow:hidden;">
+                    <div style="background:linear-gradient(135deg,#002952,#004080);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-left:5px solid ${dBorder};"
+                        onclick="var el=document.getElementById('${duid}');var arr=document.getElementById('${duid}_arr');el.style.display=el.style.display==='none'?'block':'none';arr.textContent=el.style.display==='none'?'▶':'▼';">
+                        <div>
+                            <div style="font-family:Oswald,sans-serif;font-size:15px;color:#ffc107;letter-spacing:1.5px;">📍 ${district.toUpperCase()}</div>
+                            <div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;">${dTotal} PHUs · <span style="color:#6ee7b7;">${dRec} received</span> · <span style="color:#fde68a;">${dPend} pending</span> · <span style="color:#fca5a5;">${dNot} not started</span></div>
+                        </div>
+                        <div style="text-align:right;display:flex;align-items:center;gap:10px;">
+                            <div>
+                                <div style="font-family:Oswald,sans-serif;font-size:20px;font-weight:700;color:#ffc107;">${dPct}%</div>
+                                <div style="height:4px;width:60px;background:rgba(255,255,255,.2);border-radius:3px;margin-top:3px;"><div style="height:100%;width:${dPct}%;background:#ffc107;border-radius:3px;"></div></div>
+                            </div>
+                            <span id="${duid}_arr" style="color:#ffc107;font-size:14px;">▼</span>
+                        </div>
+                    </div>
+                    <div id="${duid}" style="padding:12px;">`;
 
                 Object.keys(csvTree[district]).sort().forEach(chiefdom => {
                     const phus = csvTree[district][chiefdom];
@@ -1332,6 +1357,7 @@
                         </div>
                     </div>`;
                 });
+                html += `</div></div>`;
             });
 
             body.innerHTML = html;
